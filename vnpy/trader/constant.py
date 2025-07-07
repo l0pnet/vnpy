@@ -139,6 +139,9 @@ class Exchange(Enum):
     LOCAL = "LOCAL"         # For local generated data
     GLOBAL = "GLOBAL"       # For those exchanges not supported yet
 
+    # Special Exchanges
+    PUMPSWAP = "PUMPSWAP"   # For Pump and Dump trading
+
 
 class Currency(Enum):
     """
