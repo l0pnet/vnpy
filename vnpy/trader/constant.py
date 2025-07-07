@@ -56,6 +56,7 @@ class Product(Enum):
     FUND = _("基金")
     CFD = "CFD"
     SWAP = _("互换")
+    TOKEN = _("代币")
 
 
 class OrderType(Enum):
@@ -147,12 +148,17 @@ class Currency(Enum):
     HKD = "HKD"
     CNY = "CNY"
     CAD = "CAD"
+    '''
+    Cyber currencies
+    '''
+    SOL = "SOL"
 
 
 class Interval(Enum):
     """
     Interval of bar data.
     """
+    SECOND = "1s"
     MINUTE = "1m"
     HOUR = "1h"
     DAILY = "d"
