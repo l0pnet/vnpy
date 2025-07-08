@@ -66,3 +66,14 @@ def get_datafeed() -> BaseDatafeed:
             print(_("无法加载数据服务模块，请运行 pip install {} 尝试安装").format(module_name))
 
     return datafeed
+
+def set_datafeed(datafeed_: BaseDatafeed) -> None:
+    """
+    Set global datafeed object.
+    """
+    global datafeed
+    datafeed = datafeed_
+
+    if not isinstance(datafeed, BaseDatafeed):
+        raise TypeError(_("datafeed must be an instance of BaseDatafeed"))
+
