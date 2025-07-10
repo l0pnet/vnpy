@@ -260,14 +260,56 @@ class BarGenerator:
 
     def update_bar(self, bar: BarData) -> None:
         """
-        Update 1 minute bar into generator
+        Update 1 sec bar into generator
         """
-        if self.interval == Interval.MINUTE:
+        if self.interval == Interval.SECOND:
+            self.update_bar_second_window(bar)
+        elif self.interval == Interval.MINUTE:
             self.update_bar_minute_window(bar)
         elif self.interval == Interval.HOUR:
             self.update_bar_hour_window(bar)
         else:
             self.update_bar_daily_window(bar)
+
+    def update_bar_second_window(self, bar: BarData) -> None:
+        """
+        Update 1 second bar into generator.
+        """
+        # If not inited, create window bar object
+        if not self.window_bar:
+            dt: datetime = bar.datetime.replace(microsecond=0)
+            self.window_bar = BarData(
+                symbol=bar.symbol,
+                exchange=bar.exchange,
+                datetime=dt,
+                gateway_name=bar.gateway_name,
+                open_price=bar.open_price,
+                high_price=bar.high_price,
+                low_price=bar.low_price
+            )
+        # Otherwise, update high/low price into window bar
+        else:
+            self.window_bar.high_price = max(
+                self.window_bar.high_price,
+                bar.high_price
+            )
+            self.window_bar.low_price = min(
+                self.window_bar.low_price,
+                bar.low_price
+            )
+
+        # Update close price/volume/turnover into window bar
+        self.window_bar.close_price = bar.close_price
+        self.window_bar.volume += bar.volume
+        self.window_bar.turnover += bar.turnover
+        self.window_bar.open_interest = bar.open_interest
+
+        # Check if window bar completed
+        if not (bar.datetime.second + 1) % self.window:
+            if self.on_window_bar:
+                self.on_window_bar(self.window_bar)
+
+            self.window_bar = None
 
     def update_bar_minute_window(self, bar: BarData) -> None:
         """"""
@@ -477,7 +519,7 @@ class BarGenerator:
         bar: BarData | None = self.bar
 
         if bar:
-            bar.datetime = bar.datetime.replace(second=0, microsecond=0)
+            bar.datetime = bar.datetime.replace(microsecond=0)
             self.on_bar(bar)
 
         self.bar = None
