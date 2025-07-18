@@ -140,7 +140,7 @@ class Exchange(Enum):
     GLOBAL = "GLOBAL"       # For those exchanges not supported yet
 
     # Special Exchanges
-    PUMPSWAP = "PUMPSWAP"   # For Pump and Dump trading
+    DEX = "DEX"   # For Pump and Dump trading
 
 
 class Currency(Enum):
