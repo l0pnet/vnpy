@@ -202,59 +202,61 @@ class BarGenerator:
 
     def update_tick(self, tick: TickData) -> None:
         """
-        Update new tick data into generator.
+        Update new tick data into generator (generating one bar per second).
         """
-        new_minute: bool = False
+        new_second: bool = False
 
         # Filter tick data with 0 last price
         if not tick.last_price:
             return
 
+        # 检查是否进入新的一秒
         if not self.bar:
-            new_minute = True
-        elif (
-            (self.bar.datetime.minute != tick.datetime.minute)
-            or (self.bar.datetime.hour != tick.datetime.hour)
-        ):
-            self.bar.datetime = self.bar.datetime.replace(
-                second=0, microsecond=0
-            )
-            self.on_bar(self.bar)
+            new_second = True
+        else:
+            # 检查秒级变化（同时考虑分钟/小时/日变化）
+            bar_time = self.bar.datetime
+            tick_time = tick.datetime
+            
+            # 判断是否跨越了秒边界
+            time_diff = (tick_time - bar_time).total_seconds()
+            if time_diff >= 1.0:
+                # 完成当前Bar的微秒归零并推送
+                self.bar.datetime = self.bar.datetime.replace(microsecond=0)
+                self.on_bar(self.bar)
+                new_second = True
 
-            new_minute = True
-
-        if new_minute:
+        if new_second:
+            # 创建新Bar（精确到秒级）
             self.bar = BarData(
                 symbol=tick.symbol,
                 exchange=tick.exchange,
-                interval=Interval.MINUTE,
-                datetime=tick.datetime,
+                interval=Interval.SECOND,  # 修改为秒级周期
+                datetime=tick.datetime.replace(microsecond=0),  # 微秒归零
                 gateway_name=tick.gateway_name,
                 open_price=tick.last_price,
                 high_price=tick.last_price,
                 low_price=tick.last_price,
                 close_price=tick.last_price,
-                open_interest=tick.open_interest
+                open_interest=tick.open_interest,
+                volume=0,  # 初始化为0
+                turnover=0  # 初始化为0
             )
-        elif self.bar:
+        else:
+            # 更新当前Bar的数据
             self.bar.high_price = max(self.bar.high_price, tick.last_price)
-            if self.last_tick and tick.high_price > self.last_tick.high_price:
-                self.bar.high_price = max(self.bar.high_price, tick.high_price)
-
             self.bar.low_price = min(self.bar.low_price, tick.last_price)
-            if self.last_tick and tick.low_price < self.last_tick.low_price:
-                self.bar.low_price = min(self.bar.low_price, tick.low_price)
-
             self.bar.close_price = tick.last_price
             self.bar.open_interest = tick.open_interest
-            self.bar.datetime = tick.datetime
+            # datetime保持为当前秒的起始点（不需要每次更新）
 
-        if self.last_tick and self.bar:
-            volume_change: float = tick.volume - self.last_tick.volume
-            self.bar.volume += max(volume_change, 0)
-
-            turnover_change: float = tick.turnover - self.last_tick.turnover
-            self.bar.turnover += max(turnover_change, 0)
+        # 更新成交量和成交额（考虑可能的tick跳变）
+        if self.last_tick:
+            volume_change = max(tick.volume - self.last_tick.volume, 0)
+            turnover_change = max(tick.turnover - self.last_tick.turnover, 0)
+            
+            self.bar.volume += volume_change
+            self.bar.turnover += turnover_change
 
         self.last_tick = tick
 
